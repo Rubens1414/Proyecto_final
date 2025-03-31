@@ -1,47 +1,55 @@
-from PIL import Image
-from ultralytics import YOLO  
-import os
-import subprocess  
+from fastapi import FastAPI
+import cv2
+import numpy as np
+import base64
+import time
+import subprocess
+from ultralytics import YOLO
+import uvicorn
+from pydantic import BaseModel
 
-# Obtener la ruta del script
-base_dir = os.path.dirname(os.path.abspath(__file__))
+app = FastAPI()
 
-# Cargar el modelo YOLO
-modelo_path = os.path.join(base_dir, "Pre-train_model", "yolo11n.pt")
-model = YOLO(modelo_path)
+# Cargar modelo YOLO
+model = YOLO("../Backend/Pre-train_model/yolo11n.pt")
+objetos_previos = set()
+ultimo_envio = time.time()
 
-def detectar_objetos(imagen_path):
-    """
-    Detecta objetos en una imagen y devuelve una lista con sus nombres.
-    """
-    image = Image.open(imagen_path)
-    results = model(image)
+class ImageData(BaseModel):
+    image: str  # Imagen en base64
 
-    objetos_detectados = []  
+@app.post("/predict")
+async def predict(image_data: ImageData):
+    global objetos_previos, ultimo_envio
+
+    # Decodificar la imagen
+    image_bytes = base64.b64decode(image_data.image)
+    image_np = np.frombuffer(image_bytes, np.uint8)
+    frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+
+    results = model(frame)
+    objetos_detectados = []
 
     for result in results:
         for box in result.boxes:
-            cls = int(box.cls[0].item()) 
-            class_name = model.names[cls] 
+            cls = int(box.cls[0].item())
+            class_name = model.names[cls]
+            confidence = box.conf.item()
+            x_min, y_min, x_max, y_max = map(int, box.xyxy[0].tolist())
 
-            if class_name not in objetos_detectados: 
-                objetos_detectados.append(class_name)
+            objetos_detectados.append(
+                f"{class_name} (confianza: {confidence:.2f}, "
+                f"coordenadas: [{x_min}, {y_min}, {x_max}, {y_max}])"
+            )
 
-    return objetos_detectados
+    # Enviar solo si hay cambios y ha pasado suficiente tiempo
+    if set(objetos_detectados) != objetos_previos and time.time() - ultimo_envio > 3:
+        objetos_previos = set(objetos_detectados)
+        ultimo_envio = time.time()
+        objetos_str = "; ".join(objetos_detectados)
+        subprocess.Popen(["python", "./Api-gemini/Interpretacion.py", objetos_str])
 
-imagen_prueba = os.path.join(base_dir, "Images", "cocina_p.jpg")
+    return {"detected_objects": objetos_detectados}
 
-if os.path.exists(imagen_prueba):
-    print(f"Imagen encontrada: {imagen_prueba}")
-
-    # Obtener la lista de objetos detectados
-    objetos = detectar_objetos(imagen_prueba)
-    print(f"🔹 Objetos detectados: {objetos}")
-
-   
-    objetos_str = ",".join(objetos)
-
-    subprocess.run(["python", os.path.join(base_dir, "Api-gemini", "interpretacion.py"), objetos_str])
-
-else:
-    print(f"La imagen no se encuentra en {imagen_prueba}")
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
