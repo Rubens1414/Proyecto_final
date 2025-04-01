@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
@@ -35,6 +34,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
+  String _interpretation = "Presiona la pantalla para analizar la escena.";
 
   @override
   void initState() {
@@ -57,14 +57,14 @@ class _CameraScreenState extends State<CameraScreen> {
       String base64Image = base64Encode(bytes);
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/predict'), 
+        Uri.parse('http://10.0.2.2:8000/predict'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'image': base64Image}),
       );
 
-
       if (response.statusCode == 200) {
-        print('Respuesta del servidor: ${response.body}');
+        print('Imagen enviada con éxito');
+        await _fetchInterpretation();
       } else {
         print('Error en la respuesta del servidor');
       }
@@ -73,21 +73,61 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  Future<void> _fetchInterpretation() async {
+  try {
+    final response = await http.get(Uri.parse('http://10.0.2.2:8000/interpretation'));
+
+    if (response.statusCode == 200) {
+      final String utf8DecodedBody = utf8.decode(response.bodyBytes);
+      final data = jsonDecode(utf8DecodedBody);
+      
+      setState(() {
+        _interpretation = data['interpretation'] ?? "No se pudo obtener interpretación.";
+      });
+    } else {
+      print('Error al obtener interpretación');
+    }
+  } catch (e) {
+    print('Error al llamar a la API de interpretación: $e');
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onTap: _captureAndSendImage, 
-        child: FutureBuilder<void>(
-          future: _initializeControllerFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return CameraPreview(_controller);
-            } else {
-              return const Center(child: CircularProgressIndicator());
-            }
-          },
-        ),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: GestureDetector(
+              onTap: _captureAndSendImage,
+              child: FutureBuilder<void>(
+                future: _initializeControllerFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    return CameraPreview(_controller);
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              color: Colors.black,
+              child: Center(
+                child: Text(
+                  _interpretation,
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -11,19 +11,34 @@ client = genai.Client(api_key=API_KEY)
 
 def interpretar_escena(lista_objetos):
     prompt_instruccion = (
-        "Necesito que interpretes listas de objetos detectados en una escena y describas el contexto.\n\n"
-        "Cada objeto tiene información sobre su confianza y coordenadas en la imagen.\n\n"
-        "Ejemplo:\n"
-        "Entrada: Cama (confianza: 0.95, coordenadas: [100, 200, 300, 500]); Puerta (confianza: 0.89, coordenadas: [50, 100, 250, 600])\n"
-        "Salida esperada: Parece que estás en un dormitorio con una cama grande y una puerta al fondo.\n\n"
-        "Reglas:\n"
-        "- No uses frases como 'parece que estás describiendo'.\n"
-        "- La descripción debe ser clara para una persona con discapacidad visual.\n"
-        "- No uses palabras como 'puede ser' o 'quizás'.\n"
-        "- Considera la posición de los objetos en la imagen.\n"
-        "- Si hay un objeto grande y centrado, puede ser el foco de la escena.\n\n"
-        f"Ahora, dame la interpretación de la siguiente lista de objetos:\n{lista_objetos}"
+
+    "Tu tarea es interpretar una escena a partir de una lista de objetos detectados en la imagen, describiendo el entorno de manera clara y comprensible.\n\n"
+    "### Reglas para la interpretación:\n"
+    "- **Usa solo los objetos con confianza mayor a 0.40** para inferir el tipo de entorno.\n"
+    "- **No menciones la lista de objetos directamente**, en su lugar, describe el ambiente que representan.\n"
+    "- **Utiliza la información de posición (izquierda, centro, derecha)** para ayudar a contextualizar la escena.\n"
+    "- **Si hay objetos relacionados (ejemplo: mesa y silla), interprétalos en conjunto** para dar sentido al espacio.\n"
+    "- **Si hay elementos estructurales (puertas, ventanas, escaleras), úsalos para definir el entorno**.\n"
+    "- **Evita frases impersonales como 'en la imagen hay...'**, en su lugar, describe el ambiente directamente.\n"
+    "-No alargues la respuesta, manténla breve y al grano.\n"
+    "- **Si se detectan elementos característicos de un lugar específico (ejemplo: sofá y televisor), asume el tipo de entorno**.\n\n"
+    
+    "### Ejemplo:\n"
+    "**Entrada:**\n"
+    "Cama (confianza: 0.95, coordenadas: [100, 200, 300, 500], posición: centro); "
+    "Puerta (confianza: 0.89, coordenadas: [50, 100, 250, 600], posición: derecha); "
+    "Lámpara (confianza: 0.92, coordenadas: [200, 50, 280, 150], posición: izquierda)\n\n"
+    
+    "**Salida esperada:**\n"
+    "Parece que te encuentras en un dormitorio. En el centro se encuentra lo que parece ser una cama, "
+    " A la derecha hay una puerta,  "
+    "A la izquierda, hay una fuente de iluminación, probablemente una lámpara de mesa o de pared. "
+    "La combinación de estos elementos indica que es una habitación .\n\n"
+    
+    f"Ahora, genera una interpretación detallada del entorno basándote en los objetos detectados con confianza > 0.20:\n{lista_objetos}"
     )
+
+
 
     response = client.models.generate_content(
         model="gemini-2.0-flash",
