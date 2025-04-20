@@ -9,6 +9,7 @@ API_KEY = os.getenv("API_KEY")
 
 client = genai.Client(api_key=API_KEY)
 
+
 def interpretar_escena(lista_objetos):
     prompt_instruccion = (
 

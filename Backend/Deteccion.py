@@ -16,7 +16,7 @@ model2 = YOLO("../Backend/Pre-train_model/yolo11s.pt")  # Personas
 
 objetos_previos = set()
 ultimo_envio = time.time()
-ultima_interpretacion = ""  # Almacena la última interpretación generada
+ultima_interpretacion = ""  
 
 class ImageData(BaseModel):
     image: str  # Imagen en base64
@@ -89,6 +89,7 @@ async def predict(image_data: ImageData):
 @app.get("/interpretation")
 async def get_interpretation():
     """Devuelve la última interpretación generada por Gemini."""
+    
     return {"interpretation": ultima_interpretacion}
 
 if __name__ == "__main__":

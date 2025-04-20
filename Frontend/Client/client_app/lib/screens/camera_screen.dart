@@ -1,0 +1,100 @@
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'dart:io';
+import 'dart:convert';
+import '../services/api_service.dart';
+import '../services/tts_service.dart';
+
+class CameraScreen extends StatefulWidget {
+  final CameraDescription camera;
+  const CameraScreen({Key? key, required this.camera}) : super(key: key);
+
+  @override
+  _CameraScreenState createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+  String _interpretation = "Presiona la pantalla para analizar la escena.";
+  final TTSService _ttsService = TTSService();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(widget.camera, ResolutionPreset.medium);
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _ttsService.stop();
+    super.dispose();
+  }
+
+  Future<void> _captureAndSendImage() async {
+    try {
+      await _initializeControllerFuture;
+      final image = await _controller.takePicture();
+      final bytes = await File(image.path).readAsBytes();
+      String base64Image = base64Encode(bytes);
+
+      bool success = await APIService.sendImage(base64Image);
+      if (success) {
+        await _fetchInterpretation();
+      }
+    } catch (e) {
+      print('Error al capturar o enviar la imagen: $e');
+    }
+  }
+
+  Future<void> _fetchInterpretation() async {
+    final interpretation = await APIService.fetchInterpretation();
+    if (interpretation != null) {
+      setState(() {
+        _interpretation = interpretation;
+      });
+      await _ttsService.speak(interpretation);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        onTap: _captureAndSendImage,
+        child: FutureBuilder<void>(
+          future: _initializeControllerFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              // Se usa Stack para superponer el texto sobre la cámara
+              return Stack(
+                children: [
+                  CameraPreview(_controller), // Vista de la cámara
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      color: Colors.black54, 
+                      child: Text(
+                        _interpretation,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return const Center(child: CircularProgressIndicator());
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
