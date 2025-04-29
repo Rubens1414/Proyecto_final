@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class InstructionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    const Color appBarColor = Color(0xFF0D47A1); // Azul oscuro
+    const Color textColor = Colors.white; // Contraste alto
     return Scaffold(
       appBar: AppBar(
         title: Text('Instructions'),
@@ -12,6 +14,8 @@ class InstructionsScreen extends StatelessWidget {
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
         ),
+        backgroundColor: appBarColor,
+        foregroundColor: textColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

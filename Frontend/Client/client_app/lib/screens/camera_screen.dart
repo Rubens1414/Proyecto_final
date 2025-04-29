@@ -61,6 +61,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const Color appBarColor = Color(0xFF0D47A1); // Azul oscuro
+    const Color textColor = Colors.white; // Contraste alto
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cámara'),
@@ -70,6 +73,8 @@ class _CameraScreenState extends State<CameraScreen> {
             Navigator.pop(context);
           },
         ),
+        backgroundColor: appBarColor,
+        foregroundColor: textColor,
       ),
       body: GestureDetector(
         onTap: _captureAndSendImage,
