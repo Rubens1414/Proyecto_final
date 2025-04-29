@@ -24,17 +24,14 @@ class _CameraScreenState extends State<CameraScreen> {
     super.initState();
     _controller = CameraController(widget.camera, ResolutionPreset.medium);
     _initializeControllerFuture = _controller.initialize();
-
-    // Leer instrucciones al iniciar la pantalla
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _speakInstructions();
-    });
+    _announceUsageInstructions(); // Reproduce la explicación al iniciar
   }
 
-  void _speakInstructions() {
-    const String instructionText =
-        "Bienvenido a la cámara. Toca la pantalla para que la aplicación tome una foto y la analice mediante inteligencia artificial.";
-    _ttsService.speak(instructionText);
+  void _announceUsageInstructions() {
+    _ttsService.speak(
+      "Has accedido a la cámara. Para analizar la escena, toca en cualquier parte de la pantalla. "
+      "La aplicación tomará una foto y describirá lo que ve. Para regresar, utiliza el botón Atrás en la parte superior.",
+    );
   }
 
   @override
@@ -87,15 +84,15 @@ class _CameraScreenState extends State<CameraScreen> {
         backgroundColor: appBarColor,
         foregroundColor: textColor,
       ),
-      body: GestureDetector(
-        onTap: _captureAndSendImage,
-        child: FutureBuilder<void>(
-          future: _initializeControllerFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return Stack(
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _captureAndSendImage,
+              child: Stack(
                 children: [
-                  // Contenedor con borde de 5px alrededor de la cámara
                   Padding(
                     padding: const EdgeInsets.all(5.0),
                     child: Container(
@@ -125,12 +122,12 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ],
-              );
-            } else {
-              return const Center(child: CircularProgressIndicator());
-            }
-          },
-        ),
+              ),
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
       ),
     );
   }
