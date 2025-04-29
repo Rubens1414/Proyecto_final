@@ -24,6 +24,17 @@ class _CameraScreenState extends State<CameraScreen> {
     super.initState();
     _controller = CameraController(widget.camera, ResolutionPreset.medium);
     _initializeControllerFuture = _controller.initialize();
+
+    // Leer instrucciones al iniciar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakInstructions();
+    });
+  }
+
+  void _speakInstructions() {
+    const String instructionText =
+        "Bienvenido a la cámara. Toca la pantalla para que la aplicación tome una foto y la analice mediante inteligencia artificial.";
+    _ttsService.speak(instructionText);
   }
 
   @override
@@ -82,20 +93,18 @@ class _CameraScreenState extends State<CameraScreen> {
           future: _initializeControllerFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
-              // Se usa Stack para superponer el texto sobre la cámara
               return Stack(
                 children: [
+                  // Contenedor con borde de 5px alrededor de la cámara
                   Padding(
-                    padding: const EdgeInsets.all(
-                      5,
-                    ), // Margen alrededor del borde
+                    padding: const EdgeInsets.all(5.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white, width: 5),
-                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blueAccent, width: 2),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                         child: CameraPreview(_controller),
                       ),
                     ),
