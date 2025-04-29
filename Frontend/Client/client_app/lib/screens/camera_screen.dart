@@ -76,7 +76,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     alignment: Alignment.bottomCenter,
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      color: Colors.black54, 
+                      color: Colors.black54,
                       child: Text(
                         _interpretation,
                         style: const TextStyle(
