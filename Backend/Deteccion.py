@@ -11,85 +11,102 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-model = YOLO("../Backend/Pre-train_model/yolov8s-worldv2-lvis.pt")  # Objetos
-model2 = YOLO("../Backend/Pre-train_model/yolo11s.pt")  # Personas
+# Carga los modelos una sola vez al iniciar
+model_objects = YOLO("../Backend/Pre-train_model/yolov8s-worldv2-lvis.pt")  
+model_persons = YOLO("../Backend/Pre-train_model/yolo11s.pt")               
 
-objetos_previos = set()
-ultimo_envio = time.time()
-ultima_interpretacion = ""  
+# Variables globales
+ultima_interpretacion = ""          # Última interpretación generada
 
+# Clase que define el formato del POST
 class ImageData(BaseModel):
-    image: str  # Imagen en base64
+    image: str
 
-def actualizar_interpretacion(objetos_str):
-    """Ejecuta el script de Gemini y guarda la respuesta."""
+def actualizar_interpretacion(objetos_str: str):
+    """Llama al script externo para interpretar la lista de objetos detectados."""
     global ultima_interpretacion
     try:
         resultado = subprocess.run(
             ["python", "./Api-gemini/Interpretacion.py", objetos_str],
             capture_output=True, text=True
         )
-        ultima_interpretacion = resultado.stdout.strip()  # Guardar la respuesta
+        ultima_interpretacion = resultado.stdout.strip()
     except Exception as e:
         ultima_interpretacion = f"Error al interpretar la escena: {str(e)}"
 
+def calcular_posicion(x_center, y_center, width, height):
+    """Calcula una mejor posición del objeto (no solo en X sino también en Y)."""
+    if y_center < height / 3:
+        vertical = "arriba"
+    elif y_center < 2 * height / 3:
+        vertical = "centro"
+    else:
+        vertical = "abajo"
+
+    if x_center < width / 3:
+        horizontal = "izquierda"
+    elif x_center < 2 * width / 3:
+        horizontal = "centro"
+    else:
+        horizontal = "derecha"
+
+    return f"{vertical} {horizontal}"
+
 @app.post("/predict")
 async def predict(image_data: ImageData):
-    global objetos_previos, ultimo_envio
-
+    global ultima_interpretacion
     image_bytes = base64.b64decode(image_data.image)
     image_np = np.frombuffer(image_bytes, np.uint8)
     frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
 
-    height, width, _ = frame.shape  
-    
-    results_objetos = model(frame)
-    results_personas = model2(frame)
-    
+    height, width, _ = frame.shape
+
+    # Corre detección con ambos modelos
+    results_objetos = model_objects.predict(frame, conf=0.4, verbose=False)
+    results_personas = model_persons.predict(frame, conf=0.4, verbose=False)
+
     objetos_detectados = set()
-    
+
+    # Función para procesar resultados de detección
     def procesar_resultados(results, modelo):
-        nonlocal objetos_detectados
         for result in results:
-            if not result.boxes:
+            if result.boxes is None:
                 continue
             for box in result.boxes.data:
                 x_min, y_min, x_max, y_max, confidence, cls = box.tolist()
-                if confidence < 0.40:
+
+                if confidence < 0.4:
                     continue
-                
-                class_name = modelo.names[int(cls)]
+
+                class_name = modelo.names.get(int(cls), f"Clase_{int(cls)}")
                 confidence = float(confidence)
-                
-                x_center = (x_min + x_max) / 2
-                if x_center < width / 3:
-                    position = "izquierda"
-                elif x_center < 2 * width / 3:
-                    position = "centro"
-                else:
-                    position = "derecha"
-                
+
+                objeto_width = x_max - x_min
+                objeto_height = y_max - y_min
+                x_center = x_min + objeto_width / 2
+                y_center = y_min + objeto_height / 2
+
+                # Calcula posición avanzada
+                position = calcular_posicion(x_center, y_center, width, height)
+
+                # Arma la descripción del objeto
                 objeto_info = f"{class_name} (confianza: {confidence:.2f}, posición: {position})"
                 objetos_detectados.add(objeto_info)
-    
-    procesar_resultados(results_objetos, model)
-    procesar_resultados(results_personas, model2)
+
+    # Procesa detecciones de ambos modelos
+    procesar_resultados(results_objetos, model_objects)
+    procesar_resultados(results_personas, model_persons)
 
     print("Objetos detectados:", objetos_detectados)
 
-    if objetos_detectados != objetos_previos and time.time() - ultimo_envio > 3:
-        objetos_previos = objetos_detectados
-        ultimo_envio = time.time()
-        objetos_str = "; ".join(objetos_detectados)
-
-        threading.Thread(target=actualizar_interpretacion, args=(objetos_str,)).start()
+    # Siempre interpreta (no importa si la imagen es la misma o no)
+    objetos_str = "; ".join(objetos_detectados)
+    threading.Thread(target=actualizar_interpretacion, args=(objetos_str,)).start()
 
     return {"detected_objects": list(objetos_detectados)}
 
 @app.get("/interpretation")
 async def get_interpretation():
-    """Devuelve la última interpretación generada por Gemini."""
-    
     return {"interpretation": ultima_interpretacion}
 
 if __name__ == "__main__":
