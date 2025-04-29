@@ -85,7 +85,21 @@ class _CameraScreenState extends State<CameraScreen> {
               // Se usa Stack para superponer el texto sobre la cámara
               return Stack(
                 children: [
-                  CameraPreview(_controller), // Vista de la cámara
+                  Padding(
+                    padding: const EdgeInsets.all(
+                      5,
+                    ), // Margen alrededor del borde
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white, width: 5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CameraPreview(_controller),
+                      ),
+                    ),
+                  ),
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Container(
