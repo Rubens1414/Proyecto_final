@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class APIService {
-  static const String _baseUrl = 'http://192.168.42.221:8000';
+  static const String _baseUrl = 'http://192.168.0.14:8000';
 
   static Future<bool> sendImage(String base64Image) async {
     try {
