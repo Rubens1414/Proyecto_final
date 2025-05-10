@@ -1,5 +1,6 @@
 import sys
-from google import genai
+import google.generativeai as genai
+
 
 # Asignar la API key directamente en el código
 API_KEY = "AIzaSyC6su120xNuJgrSdQQKVG71TPu7bOtwEmI"
