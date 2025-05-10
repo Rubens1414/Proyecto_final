@@ -29,6 +29,7 @@ def actualizar_interpretacion(objetos_str: str):
             ["python", "./Api-gemini/Interpretacion.py", objetos_str],
             capture_output=True, text=True
         )
+        print('resultado'+resultado)
         ultima_interpretacion = resultado.stdout.strip()
     except Exception as e:
         ultima_interpretacion = f"Error al interpretar la escena: {str(e)}"
