@@ -6,6 +6,7 @@ API_KEY = "AIzaSyC6su120xNuJgrSdQQKVG71TPu7bOtwEmI"
 
 # Crear cliente con la API key
 client = genai.Client(api_key=API_KEY)
+print(client)
 
 def interpretar_escena(lista_objetos):
     if not lista_objetos.strip():
