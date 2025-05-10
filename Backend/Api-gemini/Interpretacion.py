@@ -1,13 +1,11 @@
 import sys
 import google.generativeai as genai
 
-
 # Asignar la API key directamente en el código
 API_KEY = "AIzaSyC6su120xNuJgrSdQQKVG71TPu7bOtwEmI"
 
-# Crear cliente con la API key
-client = genai.Client(api_key=API_KEY)
-print(client)
+# Configuración de la API
+genai.configure(api_key=API_KEY)
 
 def interpretar_escena(lista_objetos):
     if not lista_objetos.strip():
@@ -38,10 +36,9 @@ def interpretar_escena(lista_objetos):
         f"Ahora, genera una interpretación detallada del entorno basándote en los objetos detectados con confianza > 0.20:\n{lista_objetos}"
     )
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt_instruccion
-    )
+    # Crear el modelo generativo y obtener la respuesta
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    response = model.generate_content(contents=prompt_instruccion)
 
     return response.text
 
