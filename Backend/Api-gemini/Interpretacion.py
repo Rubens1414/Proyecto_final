@@ -5,8 +5,7 @@ from dotenv import load_dotenv
 
 # Cargar API key
 load_dotenv()
-API_KEY = os.getenv("API_KEY")
-
+API_KEY = 'AIzaSyC6su120xNuJgrSdQQKVG71TPu7bOtwEmI'
 # Crear cliente con la API key
 client = genai.Client(api_key=API_KEY)
 
