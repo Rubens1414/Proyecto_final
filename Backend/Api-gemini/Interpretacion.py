@@ -1,21 +1,16 @@
 import sys
-import os
 from google import genai
-from dotenv import load_dotenv
 
-# Cargar API key
-load_dotenv()
-API_KEY = os.getenv("API_KEY")
+# Asignar la API key directamente en el código
+API_KEY = "AIzaSyC6su120xNuJgrSdQQKVG71TPu7bOtwEmI"
 
 # Crear cliente con la API key
 client = genai.Client(api_key=API_KEY)
 
 def interpretar_escena(lista_objetos):
-    # Validación: si la lista está vacía o solo contiene espacios
     if not lista_objetos.strip():
         return "No se pudo reconocer el entorno."
 
-    # Instrucción para interpretar la escena
     prompt_instruccion = (
         "Tu tarea es interpretar una escena a partir de una lista de objetos detectados en la imagen, describiendo el entorno de manera clara y comprensible.\n\n"
         "### Reglas para la interpretación:\n"
@@ -25,7 +20,7 @@ def interpretar_escena(lista_objetos):
         "- **Si hay objetos relacionados (ejemplo: mesa y silla), interprétalos en conjunto** para dar sentido al espacio.\n"
         "- **Si hay elementos estructurales (puertas, ventanas, escaleras), úsalos para definir el entorno**.\n"
         "- **Evita frases impersonales como 'en la imagen hay...'**, en su lugar, describe el ambiente directamente.\n"
-        "-No alargues la respuesta, manténla breve y al grano.\n"
+        "- No alargues la respuesta, manténla breve y al grano.\n"
         "- **Si se detectan elementos característicos de un lugar específico (ejemplo: sofá y televisor), asume el tipo de entorno**.\n\n"
         "Si encuentras una lista 'Conifere', 'Feuillu', 'Tree' solo menciona como 'plantas' y no lo interpretes como un objeto específico.\n\n"
         "### Ejemplo:\n"
@@ -41,7 +36,6 @@ def interpretar_escena(lista_objetos):
         f"Ahora, genera una interpretación detallada del entorno basándote en los objetos detectados con confianza > 0.20:\n{lista_objetos}"
     )
 
-    # Generar respuesta con Gemini
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt_instruccion
@@ -55,5 +49,5 @@ if __name__ == "__main__":
         interpretacion = interpretar_escena(objetos_lista)
         print(interpretacion)
     else:
-        # Caso en que no se pasan argumentos
         print("No se pudo reconocer el entorno.")
+
